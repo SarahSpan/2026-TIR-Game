@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>TIR Tabletop Exercise</title>
+<style>
+:root{
+  --navy:#1A3A5C;--teal:#0D6E8A;--amber:#D4841A;
+  --red:#B83232;--green:#2E7D52;--blue:#0891B2;
+  --white:#FFFFFF;--g1:#F2F4F6;--g2:#E2E6EA;--g3:#6B7280;
+  --black:#1A202C;--lt:#E8F4F8;--la:#FDF3E3;--lr:#FDEEEE;--lg:#EBF5EE;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--g1);color:var(--black);min-height:100vh;max-width:480px;margin:0 auto}
+.screen{display:none;flex-direction:column;min-height:100vh}
+.screen.active{display:flex}
+.hdr{background:var(--navy);color:#fff;padding:12px 16px 8px;position:sticky;top:0;z-index:100}
+.hdr-top{font-size:11px;font-weight:600;letter-spacing:.4px;opacity:.7}
+.hdr-title{font-size:17px;font-weight:700;margin-top:1px}
+.hdr-sub{font-size:12px;color:#9EC5DE;margin-top:2px}
+.hdr-bar{height:3px;background:var(--amber);margin-top:8px}
+.bpill{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.12);border-radius:14px;padding:2px 9px;font-size:12px;color:#fff;margin-top:4px}
+.bpill b{color:#FFD580}
+.bpill.warn b{color:#FF8080}
+.content{flex:1;padding:14px;overflow-y:auto}
+.foot{background:var(--navy);padding:10px 14px;position:sticky;bottom:0}
+.card{background:#fff;border-radius:10px;padding:14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.card-title{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:6px}
+.card-text{font-size:13px;line-height:1.65;color:var(--black);white-space:pre-line}
+.card-note{font-size:12px;color:var(--g3);margin-top:6px;white-space:pre-line;line-height:1.5}
+.btn{display:block;width:100%;padding:13px;border:none;border-radius:9px;font-size:15px;font-weight:700;cursor:pointer;text-align:center;transition:opacity .15s}
+.btn:active{opacity:.8}
+.btn:disabled{opacity:.35;cursor:default}
+.btn-navy{background:var(--navy);color:#fff}
+.btn-amber{background:var(--amber);color:#fff}
+.btn-green{background:var(--green);color:#fff}
+.btn-outline{background:#fff;color:var(--navy);border:2px solid var(--navy)}
+.btn-sm{padding:9px;font-size:13px}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.opt{border:2px solid var(--g2);border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;background:#fff;transition:all .15s}
+.opt.sel{border-color:var(--navy);background:var(--lt)}
+.opt.g.sel{border-color:var(--green);background:var(--lg)}
+.opt.a.sel{border-color:var(--amber);background:var(--la)}
+.opt.b.sel{border-color:var(--blue);background:#E8F8FC}
+.opt-hdr{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
+.opt-label{font-size:13px;font-weight:700;color:var(--navy);flex:1}
+.opt-cost{font-size:11px;font-weight:600;background:var(--g1);border-radius:5px;padding:2px 7px;color:var(--g3);white-space:nowrap;flex-shrink:0}
+.opt-desc{font-size:11px;color:var(--g3);line-height:1.5;margin-top:4px}
+.tick{width:19px;height:19px;border-radius:50%;border:2px solid var(--g2);display:inline-flex;align-items:center;justify-content:center;margin-right:6px;flex-shrink:0;font-size:10px;transition:all .15s}
+.opt.sel .tick{background:var(--navy);border-color:var(--navy);color:#fff}
+.opt.g.sel .tick{background:var(--green);border-color:var(--green);color:#fff}
+.opt.a.sel .tick{background:var(--amber);border-color:var(--amber);color:#fff}
+.opt.b.sel .tick{background:var(--blue);border-color:var(--blue);color:#fff}
+.dots{display:flex;gap:5px;margin-top:4px}
+.dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.25)}
+.dot.done{background:var(--amber)}
+.dot.cur{background:#fff}
+.dice-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.die{background:#fff;border:2px solid var(--g2);border-radius:10px;padding:14px 8px;font-size:24px;font-weight:700;color:var(--navy);cursor:pointer;text-align:center;transition:all .15s}
+.die:active,.die.sel{background:var(--navy);color:#fff;border-color:var(--navy)}
+.out-odd{background:var(--lg);border-left:4px solid var(--green);border-radius:8px;padding:12px;margin-bottom:8px}
+.out-even{background:var(--lr);border-left:4px solid var(--red);border-radius:8px;padding:12px;margin-bottom:8px}
+.out-b{background:#EFF6FF;border-left:4px solid var(--blue);border-radius:8px;padding:12px;margin-bottom:8px}
+.out-label{font-size:12px;font-weight:700;margin-bottom:4px}
+.out-text{font-size:12px;line-height:1.55;color:var(--black)}
+.impact{font-size:26px;font-weight:700;text-align:center;padding:14px;border-radius:9px;margin:10px 0}
+.imp-n{color:var(--red);background:var(--lr)}
+.imp-p{color:var(--green);background:var(--lg)}
+.imp-z{color:var(--g3);background:var(--g1)}
+.chance{background:linear-gradient(135deg,#FDF3E3,#FFF8F0);border:2px solid var(--amber);border-radius:12px;padding:16px;margin:10px 0}
+.chance-title{font-size:14px;font-weight:700;color:var(--amber);margin-bottom:8px}
+.chance-text{font-size:13px;line-height:1.6;color:var(--black);white-space:pre-line}
+.sum-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--g2);font-size:13px}
+.sum-row:last-child{border:none}
+.slbl{color:var(--g3)}
+.sval{font-weight:700;color:var(--navy)}
+.sval.n{color:var(--red)}
+.sval.p{color:var(--green)}
+.total{background:var(--navy);color:#fff;border-radius:9px;padding:13px 14px;display:flex;justify-content:space-between;font-size:15px;font-weight:700;margin-top:10px}
+.total.red{background:var(--red)}
+.total.grn{background:var(--green)}
+.info{background:var(--lt);border-left:3px solid var(--teal);border-radius:6px;padding:10px 12px;font-size:12px;margin-bottom:10px;line-height:1.5}
+.wbox{background:#FFF3CD;border-left:3px solid var(--amber);border-radius:6px;padding:10px 12px;font-size:12px;margin-bottom:10px;line-height:1.5}
+input[type=text]{width:100%;padding:12px;border:2px solid var(--g2);border-radius:9px;font-size:16px;outline:none}
+input[type=text]:focus{border-color:var(--navy)}
+.pbar{height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin-top:5px;overflow:hidden}
+.pfill{height:100%;background:var(--amber);border-radius:2px;transition:width .3s}
+.divider{height:1px;background:var(--g2);margin:10px 0}
+.sc-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<!-- SCREEN 1: WELCOME -->
+<div id="sw" class="screen active">
+  <div class="hdr">
+    <div class="hdr-top">TREASURERS & INSURANCE ROUNDTABLE</div>
+    <div class="hdr-title">Tabletop Exercise</div>
+    <div class="hdr-bar"></div>
+  </div>
+  <div class="content">
+    <div style="text-align:center;padding:18px 0 10px">
+      <div style="font-size:38px;margin-bottom:8px">🌍</div>
+      <div style="font-size:19px;font-weight:700;color:var(--navy)">Meridian Global Relief</div>
+      <div style="font-size:13px;color:var(--g3);margin-top:2px">Malaka Refugee Program</div>
+    </div>
+    <div class="card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:center">
+        <div><div style="font-size:24px;font-weight:700;color:var(--navy)">5</div><div style="font-size:11px;color:var(--g3)">Scenarios</div></div>
+        <div><div style="font-size:24px;font-weight:700;color:var(--amber)">45 min</div><div style="font-size:11px;color:var(--g3)">Game Time</div></div>
+        <div><div style="font-size:24px;font-weight:700;color:var(--teal)">$185K</div><div style="font-size:11px;color:var(--g3)">Annual Budget</div></div>
+        <div><div style="font-size:24px;font-weight:700;color:var(--green)">$650K</div><div style="font-size:11px;color:var(--g3)">Contingency/Profit</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Your Team</div>
+      <input type="text" id="ti" placeholder="e.g. Team 3" maxlength="30">
+      <div style="font-size:11px;color:var(--g3);margin-top:5px">Enter your team name or keep the default</div>
+    </div>
+    <div class="info">You have two printed sheets — Player Briefing Document and Choice Matrix. Use those as your reference throughout the game.</div>
+  </div>
+  <div class="foot"><button class="btn btn-navy" onclick="startGame()">Start Game →</button></div>
+</div>
+
+<!-- SCREEN 2: CHOICES -->
+<div id="sc" class="screen">
+  <div class="hdr">
+    <div class="hdr-top" id="sc-team"></div>
+    <div class="hdr-title" id="sc-title">Choice 1 of 6</div>
+    <div class="bpill" id="sc-pill">Budget remaining: <b id="sc-bud">$185,000</b></div>
+    <div class="pbar"><div class="pfill" id="sc-prog"></div></div>
+    <div class="hdr-bar"></div>
+  </div>
+  <div class="content" id="sc-content"></div>
+  <div class="foot">
+    <div class="btn-row">
+      <button class="btn btn-outline btn-sm" id="sc-back" onclick="prevC()">← Back</button>
+      <button class="btn btn-navy btn-sm" id="sc-next" onclick="nextC()">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 3: BUDGET REVIEW -->
+<div id="sb" class="screen">
+  <div class="hdr">
+    <div class="hdr-top" id="sb-team"></div>
+    <div class="hdr-title">Budget Summary</div>
+    <div class="hdr-bar"></div>
+  </div>
+  <div class="content" id="sb-content"></div>
+  <div class="foot" id="sb-foot"></div>
+</div>
+
+<!-- SCREEN 4: SCENARIO CARD -->
+<div id="ss" class="screen">
+  <div class="hdr">
+    <div class="hdr-top" id="ss-team"></div>
+    <div class="hdr-title" id="ss-title">Scenario 1 of 5</div>
+    <div class="bpill" id="ss-pill">Contingency/Profit: <b id="ss-bal">$650,000</b></div>
+    <div class="dots" id="ss-dots"></div>
+    <div class="hdr-bar"></div>
+  </div>
+  <div class="content" id="ss-content"></div>
+  <div class="foot"><button class="btn btn-amber" onclick="showDice()">Roll the Dice →</button></div>
+</div>
+
+<!-- SCREEN 5: DICE -->
+<div id="sd" class="screen">
+  <div class="hdr">
+    <div class="hdr-top" id="sd-team"></div>
+    <div class="hdr-title" id="sd-title">Roll the Dice</div>
+    <div class="bpill" id="sd-pill">Contingency/Profit: <b id="sd-bal">$650,000</b></div>
+    <div class="hdr-bar"></div>
+  </div>
+  <div class="content">
+    <div class="card" style="text-align:center;padding:18px">
+      <div style="font-size:38px;margin-bottom:8px">🎲</div>
+      <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:4px">Roll your physical dice</div>
+      <div style="font-size:13px;color:var(--g3);margin-bottom:14px">Tap the number you rolled</div>
+      <div class="dice-grid">
+        <div class="die" onclick="selDie(1,this)">1</div>
+        <div class="die" onclick="selDie(2,this)">2</div>
+        <div class="die" onclick="selDie(3,this)">3</div>
+        <div class="die" onclick="selDie(4,this)">4</div>
+        <div class="die" onclick="selDie(5,this)">5</div>
+        <div class="die" onclick="selDie(6,this)">6</div>
+      </div>
+      <div id="sd-res" style="font-size:13px;color:var(--g3);min-height:20px"></div>
+    </div>
+  </div>
+  <div class="foot"><button class="btn btn-navy" id="sd-btn" onclick="showCons()" disabled>See Consequence →</button></div>
+</div>
+
+<!-- SCREEN 6: CONSEQUENCE -->
+<div id="sk" class="screen">
+  <div class="hdr">
+    <div class="hdr-top" id="sk-team"></div>
+    <div class="hdr-title" id="sk-title">Consequence</div>
+    <div class="bpill" id="sk-pill">Contingency/Profit: <b id="sk-bal">$650,000</b></div>
+    <div class="hdr-bar"></div>
+  </div>
+  <div class="content" id="sk-content"></div>
+  <div class="foot"><button class="btn btn-amber" onclick="showChanceDice()">Roll for Chance Card →</button></div>
+</div>
+
+<!-- SCREEN 7: CHANCE DICE -->
+<div id="scd" class="screen">
+  <div class="hdr">
+    <div class="hdr-top" id="scd-team"></div>
+    <div class="hdr-title">Chance Card Roll</div>
+    <div class="bpill" id="scd-pill">Contingency/Profit: <b id="scd-bal">$650,000</b></div>
+    <div class="hdr-bar"></div>
+  </div>
+  <div class="content">
+    <div class="card" style="text-align:center;padding:18px">
+      <div style="font-size:38px;margin-bottom:8px">🎲</div>
+      <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:4px">Roll again for Chance Card</div>
+      <div style="font-size:13px;color:var(--g3);margin-bottom:14px">Tap the number you rolled</div>
+      <div class="dice-grid">
+        <div class="die" onclick="selChance(1,this)">1</div>
+        <div class="die" onclick="selChance(2,this)">2</div>
+        <div class="die" onclick="selChance(3,this)">3</div>
+        <div class="die" onclick="selChance(4,this)">4</div>
+        <div class="die" onclick="selChance(5,this)">5</div>
+        <div class="die" onclick="selChance(6,this)">6</div>
+      </div>
+      <div id="scd-res" style="font-size:13px;color:var(--g3);min-height:20px"></div>
+    </div>
+  </div>
+  <div class="foot"><button class="btn btn-navy" id="scd-btn" onclick="showChanceCard()" disabled>See Chance Card →</button></div>
+</div>
+
+<!-- SCREEN 8: CHANCE CARD -->
+<div id="scc" class="screen">
+  <div class="hdr">
+    <div class="hdr-top" id="scc-team"></div>
+    <div class="hdr-title">Chance Card</div>
+    <div class="bpill" id="scc-pill">Contingency/Profit: <b id="scc-bal">$650,000</b></div>
+    <div class="hdr-bar"></div>
+  </div>
+  <div class="content" id="scc-content"></div>
+  <div class="foot"><button class="btn btn-navy" id="scc-next" onclick="afterChance()">Continue →</button></div>
+</div>
+
+<!-- SCREEN 9: RESULTS -->
+<div id="sr" class="screen">
+  <div class="hdr">
+    <div class="hdr-top" id="sr-team"></div>
+    <div class="hdr-title">Final Results</div>
+    <div class="hdr-bar"></div>
+  </div>
+  <div class="content" id="sr-content"></div>
+  <div class="foot"><button class="btn btn-green" onclick="submitResults()">Submit Results →</button></div>
+</div>
+
+<!-- SCREEN 10: SUBMITTED -->
+<div id="sdn" class="screen">
+  <div class="hdr">
+    <div class="hdr-top" id="sdn-team"></div>
+    <div class="hdr-title">Results Submitted</div>
+    <div class="hdr-bar"></div>
+  </div>
+  <div class="content" style="text-align:center;padding-top:30px">
+    <div style="font-size:54px;margin-bottom:12px">✓</div>
+    <div style="font-size:19px;font-weight:700;color:var(--navy);margin-bottom:6px">Well played</div>
+    <div style="font-size:13px;color:var(--g3);margin-bottom:18px">Return to the main room for the debrief.</div>
+    <div id="sdn-sum" class="card" style="text-align:left"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// GAME DATA
+// ═══════════════════════════════════════════
+const CHOICES = [
+  { id:"property", title:"Property Insurance",
+    opts:[
+      {id:"comp",label:"Option 1 — Comprehensive",cost:41000,costLabel:"$41,000/yr",desc:"Warehouse, inventory, vehicles and supplies in transit (inland marine). $500,000 limit · $5,000 deductible",color:"g"},
+      {id:"basic",label:"Option 2 — Basic",cost:11000,costLabel:"$11,000/yr",desc:"Warehouse and inventory assets. $250,000 limit · $10,000 deductible",color:"a"}
+    ]},
+  { id:"crime", title:"Crime Insurance",
+    opts:[
+      {id:"comp",label:"Option 1 — Comprehensive",cost:39000,costLabel:"$39,000/yr",desc:"Employee dishonesty, theft, forgery, fraudulent transactions, payment diversion and financial crime. $600,000 limit · $10,000 deductible",color:"g"},
+      {id:"basic",label:"Option 2 — Basic",cost:12000,costLabel:"$12,000/yr",desc:"Employee dishonesty and theft. $100,000 limit · $25,000 deductible",color:"a"}
+    ]},
+  { id:"cyber", title:"Cyber Insurance",
+    opts:[
+      {id:"comp",label:"Option 1 — Comprehensive",cost:23000,costLabel:"$23,000/yr",desc:"Data breach, ransomware, network intrusion, business interruption, losses from digitally compromised communications. $1,000,000 limit · $15,000 deductible",color:"g"},
+      {id:"basic",label:"Option 2 — Basic",cost:9500,costLabel:"$9,500/yr",desc:"Data breach and ransomware. $250,000 limit · $30,000 deductible",color:"a"}
+    ]},
+  { id:"fx", title:"FX Management",
+    opts:[
+      {id:"centralized",label:"Choice A — Centralized",cost:12400,costLabel:"$12,400/yr",desc:"MGR treasury manages all FX across the entire project. Consolidated view of all currency exposure.",color:"g"},
+      {id:"decentralized",label:"Choice B — Decentralized",cost:0,costLabel:"$0",desc:"Each organization manages FX for their own activities independently.",color:"a"}
+    ]},
+  { id:"staffing", title:"Staffing — Cash Distribution",
+    opts:[
+      {id:"human",label:"Choice A — Fully Human",cost:52500,costLabel:"$52,500/yr",desc:"Local Accounting Manager and Junior Accountant. Full manual oversight of all cash flow forecasting.",color:"g"},
+      {id:"ai",label:"Choice B — AI Hybrid",cost:35000,costLabel:"$35,000/yr",desc:"Accounting Manager supported by MGR's existing AI cash flow platform (same tool as Kasoba, 14 months in use).",color:"a"}
+    ]},
+  { id:"distribution", title:"Distribution Method",
+    note:"1,000 recipients · $35 per recipient · every Thursday · $35,000 per week",
+    opts:[
+      {id:"vouchers",label:"Choice A — Paper Vouchers",cost:46800,costLabel:"$0.90/recipient · $46,800/yr",desc:"Paper vouchers distributed by BAO agents. Redeemable at registered shops in Lema Town and mobile market at Hope Camp.",color:"g"},
+      {id:"mobile",label:"Choice B — Basic Mobile Money",cost:41600,costLabel:"$0.80/recipient · $41,600/yr",desc:"Digital transfers to registered recipient mobile accounts. Cash-out at Daia Village mobile money agent (15 min walk).",color:"a"},
+      {id:"biometric",label:"Choice C — Digital Biometric Solution",cost:58760,costLabel:"$1.13/recipient · $58,760/yr",desc:"BAO agents use biometric fingerprint verification devices. Works without mobile network connectivity.",color:"b"}
+    ]}
+];
+
+const SCENARIOS = [
+  { id:1, title:"Payment Fraud & Social Engineering", sub:"Crime Insurance · Cyber Insurance", color:"#B83232",
+    card:"The first major project payment of MKS 2,125,000 ($250,000 at 8.50 MKS per USD) must be processed to fund operations in Malaka.\n\nAlice, your trusted relationship manager at Intara Bank Group, sends a message while traveling for a family bereavement. Coverage is spotty but she confirms the scheduled Zoom call will cover final payment details. She says to call her mobile if urgent.\n\nThe Zoom call arrives as a Teams invite. The call proceeds and you speak directly with Alice who confirms the payment instructions and account details. Your treasury analyst tries Alice's mobile after the call — straight to voicemail, consistent with the spotty coverage she mentioned. With the project launch imminent and funding urgently needed, the payment is processed.",
+    getOutcomeKey(d){return d%2===0?"2":"1"},
+    outcomes:{
+      "1":{label:"Outcome 1 — Legitimate",cls:"out-odd",
+        text:"Everything was genuine. Alice's assistant had switched to Teams for scheduling reasons — never communicated to MGR. The voicemail was simply missed due to travel. Funds arrived safely at the correct account.\n\nHowever the sequence of events — platform switch, unanswered callback — triggered a post-payment internal audit. The question is not whether fraud succeeded. The question is whether your controls would have caught it if it had been fraud."},
+      "2":{label:"Outcome 2 — Fraud Confirmed",cls:"out-even",
+        text:"The email containing payment instructions was spoofed using Alice's known details and her social media post about the bereavement. The Teams call was a sophisticated audio impersonation — poor signal quality explained away any voice inconsistencies. You spoke with someone posing as Alice.\n\nThe callback went to a fraudster-controlled voicemail. The $250,000 (MKS 2,125,000) was routed to an attacker-controlled account. By the time the fraud was discovered the funds were unrecoverable."}
+    },
+    getCons(d,ch){
+      const o=d%2===0?"2":"1", c=ch.crime;
+      const map={
+        "1-comp":{title:"Outcome 1 / Comprehensive Crime",
+          text:"Funds arrived safely. Post-payment audit triggered by the suspicious sequence of events. Controls functioned but were not consciously followed — the team proceeded on comfort with Alice rather than verified protocols.\n\nCyber insurance reviewed — the cyber policy does not cover this type of event. A mandatory controls upgrade is required.",
+          impact:-17400,notes:"Audit and controls remediation: -$17,400"},
+        "1-basic":{title:"Outcome 1 / Basic Crime",
+          text:"Funds arrived safely. Post-payment audit triggered. Controls gap identified. Cyber insurance reviewed — the cyber policy does not cover this type of event.\n\nA mandatory controls upgrade is required.",
+          impact:-17400,notes:"Audit and controls remediation: -$17,400"},
+        "2-comp":{title:"Outcome 2 / Comprehensive Crime",
+          text:"Fraud confirmed. $250,000 routed to attacker-controlled account.\n\nCyber insurance claim filed — DENIED. Social engineering fraud is a crime loss, not a cyber loss. Your cyber policy does not cover this regardless of how digital the attack was.\n\nComprehensive crime policy responds. Claim approved. Law enforcement and Stonebridge Foundation notified.",
+          impact:-63400,notes:"Gross loss: $250,000\nCyber claim: DENIED — social engineering is a crime loss\nCrime recovery: $204,000 (after $10,000 deductible)\nNet loss: -$46,000 + remediation -$17,400 = -$63,400"},
+        "2-basic":{title:"Outcome 2 / Basic Crime",
+          text:"Fraud confirmed. $250,000 routed to attacker-controlled account.\n\nCyber insurance claim filed — DENIED. Social engineering fraud is a crime loss, not a cyber loss.\n\nBasic crime policy reviewed — payment diversion is excluded from basic crime which covers employee dishonesty and theft only. DENIED.\n\nBoth policies denied. Full loss uninsured. Stonebridge Foundation notified. Potential program suspension.",
+          impact:-267400,notes:"Gross loss: $250,000\nCyber claim: DENIED — social engineering is a crime loss\nCrime claim: DENIED — payment diversion excluded from basic crime\nTotal: -$250,000 + remediation -$17,400 = -$267,400"}
+      };
+      return map[`${o}-${c}`]||map["1-comp"];
+    },
+    chance:{
+      neg:{title:"Chance Card — Cybersecurity Upgrade",
+        text:"MGR's IT security team has identified that the fraudster's email spoofing exploited an outdated email security protocol. An emergency cybersecurity upgrade is mandatory across all MGR systems in Malaka.",
+        impact:-12500,note:"Impact: -$12,500"},
+      pos:{title:"Chance Card — Intara Bank Recovery",
+        text:"Intara Bank Group's fraud investigation team, working with Malakan law enforcement, successfully traced a portion of the fraudulently transferred funds through the correspondent banking network. Partial asset recovery has been achieved.",
+        impact:50000,note:"Impact: +$50,000 on Outcome 2 only · No financial impact on Outcome 1",
+        cond:"2"}
+    }
+  },
+  { id:2, title:"Insurance: Property & Crime", sub:"Property Insurance · Crime Insurance", color:"#D4841A",
+    card:"You drive to Kalo Town warehouse for a program review. BAO's warehouse manager provides a comprehensive tour of the facility and inventory.\n\nAs the tour concludes, Ike, a junior BAO employee, nervously pulls you aside. He shares that he has noticed branded project supplies for sale in the local market. He has been reluctant to report this to his supervisor as he is unsure what he saw and does not want to cause trouble. Alarmed, you immediately call the BAO program manager to investigate.\n\nThe subgrant agreement required BAO to purchase transit insurance for all goods in transit between Kalo Town and Hope Refugee Camp. MGR never requested proof of coverage. BAO forgot to purchase it.",
+    getOutcomeKey(d){return d%2===0?"2":"1"},
+    outcomes:{
+      "1":{label:"Outcome 1 — Misunderstanding",cls:"out-odd",
+        text:"The program manager investigates and the mystery is resolved. The branded supplies seen in Kalo Town market are locally produced goods with similar packaging — not project supplies.\n\nHowever during the investigation it emerges that a recent supply run from Kalo warehouse to Hope Refugee Camp was involved in a road accident along R40. A vehicle overturned after hitting a pothole. The supplies were damaged beyond use. The loss is valued at $45,000."},
+      "2":{label:"Outcome 2 — Theft Confirmed",cls:"out-even",
+        text:"The program manager's investigation confirms Ike's concern. Project supplies have been systematically stolen from the Kalo warehouse by a senior BAO employee — Ike's supervisor — working with an external accomplice. Branded supplies have been sold in Kalo Town market and shipped to several larger cities in the region.\n\nRecovery is unlikely. The theft has been ongoing for several months. Total value of stolen supplies: $78,500.\n\nIke had suspected his supervisor for some time but feared retaliation. MGR has no HR authority over him but has a moral responsibility to ensure his protection."}
+    },
+    getCons(d,ch){
+      const o=d%2===0?"2":"1",prop=ch.property,crime=ch.crime;
+      const map={
+        "1-comp":{title:"Outcome 1 / Comprehensive Property",
+          text:"The $45,000 transit damage is covered under MGR's comprehensive property policy which includes inland marine (supplies in transit). Claim filed promptly. Claim approved.",
+          impact:-5000,notes:"Recovery: $45,000 - $5,000 deductible = $40,000 recovered\nNet: -$5,000 (deductible only)"},
+        "1-basic":{title:"Outcome 1 / Basic Property",
+          text:"The $45,000 transit damage occurs. The basic property policy is reviewed — it excludes inland marine coverage. Supplies in transit are not covered.\n\nMGR never requested proof that BAO had purchased the required transit insurance. BAO forgot to purchase it. The full transit loss falls to the project budget.\n\nThe insurer confirms the exclusion is clearly stated in the policy.",
+          impact:-45000,notes:"Recovery: $0 — inland marine excluded from basic policy\nNet: -$45,000 full loss"},
+        "2-comp":{title:"Outcome 2 / Comprehensive Crime",
+          text:"Theft confirmed. A claim is filed under the comprehensive crime policy. Employee dishonesty and third-party theft are covered. Claim approved.\n\nIke is formally protected as a whistleblower. Law enforcement notified in Malaka. Stonebridge Foundation notified — demonstrating good governance.",
+          impact:-10000,notes:"Recovery: $78,500 - $10,000 deductible = $68,500 recovered\nNet: -$10,000 (deductible only)"},
+        "2-basic":{title:"Outcome 2 / Basic Crime",
+          text:"Theft confirmed. Basic crime claim filed — $78,500 theft against $100,000 limit. Claim approved but $25,000 deductible applies.\n\nIke's whistleblower protection must be explicitly managed despite MGR having no HR authority over him.",
+          impact:-25000,notes:"Recovery: $78,500 - $25,000 deductible = $53,500 recovered\nNet: -$25,000 (deductible)"}
+      };
+      const key=o==="1"?`1-${prop}`:`2-${crime}`;
+      return map[key]||map["1-comp"];
+    },
+    chance:{
+      neg:{title:"Chance Card — Kalo General Insurance Insolvency",
+        text:"The Malakan Financial Services Authority has announced that Kalo General Insurance, a local carrier, has been placed into insolvency proceedings. MGR's local insurance broker had placed a portion of the program's cover through Kalo General as a co-insurer. A claims reserve must be set aside regardless of primary carrier.",
+        impact:-8000,note:"Impact: -$8,000 (applies to all teams)"},
+      pos:{title:"Chance Card — Malakan Tax Exemption",
+        text:"The Malakan government has announced a tax exemption for registered NGOs operating refugee assistance programs. Your program qualifies. Tax savings have been returned to the project budget.",
+        impact:28500,note:"Impact: +$28,500"}
+    }
+  },
+  { id:3, title:"AI Model Drift & Cash Distribution", sub:"Staffing Choice", color:"#2E7D52",
+    card:"The Malaka Refugee Cash Program has been running smoothly. 1,000 recipients receive the equivalent of $35 every Thursday — $35,000 per week. Eight distributions completed without incident.\n\nMGR has been using the same AI cash flow model successfully in the Kasoba Cash Distribution Program for 14 months — same staff, same tools. The Malaka program was modeled directly on Kasoba. The MGR accounting team is stretched across both countries.\n\nHeavy rainfall causes significant flooding along the Maio River. Several villages in the distribution network become inaccessible. BAO's transportation team confirms that Thursday's distribution cannot proceed as planned across multiple village locations. This is the first disruption since the program launched. The model has never seen a disruption before.",
+    getOutcomeKey(d){return d%2===0?"2":"1"},
+    outcomes:{
+      "1":{label:"Outcome 1 — Brief Flooding (1 Week)",cls:"out-odd",
+        text:"The flooding recedes faster than expected. The Maio River returns to normal levels within one week. Village access via the unpaved roads is restored and BAO confirms distributions can resume on the Thursday schedule. One Thursday distribution was disrupted.\n\nHow cleanly does the program return to its normal rhythm and whether the cash flow planning process has been affected?"},
+      "2":{label:"Outcome 2 — Sustained Flooding (6 Weeks)",cls:"out-even",
+        text:"The flooding is more severe and persistent than initially assessed. Heavy upstream rainfall continues to feed the Maio River and the affected villages remain inaccessible for six consecutive weeks — six Thursday distributions have been missed or significantly disrupted. The model has been exposed to six weeks of abnormal distribution patterns."}
+    },
+    getCons(d,ch){
+      const o=d%2===0?"2":"1",s=ch.staffing;
+      const map={
+        "1-human":{title:"Outcome 1 / Fully Human Team",
+          text:"The accounting manager and junior accountant managed the one-week disruption manually. They adjusted cash positioning week by week based on actual village access reports from BAO. When flooding receded distributions resumed immediately on the correct Thursday schedule.\n\nThe junior accountant flagged one village where road access was partially restored — allowing a partial distribution that the AI model would not have detected.",
+          impact:-1500,notes:"Overtime: -$1,500\nDirect impact: $0 — distributions resumed cleanly"},
+        "1-ai":{title:"Outcome 1 / AI Hybrid",
+          text:"The AI model encountered its first disruption after eight weeks of stable Thursday distributions. The accounting manager fed one week of disrupted data into the model.\n\nBecause flooding receded quickly the drift was limited. However on the first Thursday after recovery the model predicted reduced cash positioning at two village distribution points — it had begun to learn that lower volumes were normal. Emergency manual corrections were required.",
+          impact:-1500,notes:"Overtime for manual model corrections: -$1,500"},
+        "2-human":{title:"Outcome 2 / Fully Human Team",
+          text:"The accounting manager and junior accountant managed six weeks of sustained flooding through manual cash flow planning. It was demanding — the MGR accounting team was already stretched across the Kasoba Cash Distribution Program.\n\nHowever distributions were managed carefully throughout and when flooding receded the program returned immediately to the correct Thursday schedule. Stonebridge Foundation expressed satisfaction with the transparent management of the disruption.",
+          impact:-4000,notes:"Overtime: -$2,500\nDelayed distribution cost: -$1,500\nTotal: -$4,000"},
+        "2-ai":{title:"Outcome 2 / AI Hybrid",
+          text:"The AI model absorbed six weeks of severely disrupted data. It learned that delayed and irregular Thursday distributions were normal. When flooding receded the model continued predicting disrupted patterns — under-positioning cash at village points and mistiming Thursday disbursements.\n\nThree Thursday distributions were delayed or incorrectly sized. Two villages received distributions a week late. Correcting the drift required stripping out all flood-period data and retraining from the pre-flood baseline.\n\nStonebridge Foundation requested a formal explanation of distribution irregularities. The distribution irregularities have been formally noted in MGR's Stonebridge program record. Future grant applications will require additional due diligence on operational controls.",
+          impact:-7800,notes:"Mistimed distribution costs: -$4,700\nModel retraining and correction: -$3,100\nTotal: -$7,800\nAdditional: Formal Stonebridge program record notation"}
+      };
+      return map[`${o}-${s}`]||map["1-human"];
+    },
+    chance:{
+      neg:{title:"Chance Card — AI Governance Audit",
+        text:"An internal audit review of the Malaka Refugee Cash Program has been triggered following distribution irregularities reported in BAO's monthly program report to Stonebridge Foundation.\n\nThe audit reveals that no formal governance policy exists for the AI-assisted cash flow model. There are no documented protocols for when to retrain the model, who has authority to modify it, how outputs should be verified before payments are processed, or what to do when the operating environment changes materially.\n\nA mandatory governance framework must now be developed regardless of which staffing approach was chosen.",
+        impact:-12500,note:"Impact: -$12,500 (all teams)"},
+      pos:{title:"Chance Card — Stonebridge Supplementary Grant",
+        text:"Stonebridge Foundation's endowment has grown following increased investment into Malaka. A supplementary grant has been announced to all active programs in good standing. Your program qualifies.",
+        impact:50000,note:"Impact: +$50,000"}
+    }
+  },
+  { id:4, title:"Refugee Cash Distribution Method", sub:"Distribution Method Choice", color:"#0891B2",
+    card:"The Malaka Refugee Cash Program is in full operation. BAO is managing weekly Thursday distributions to 1,000 registered recipients across multiple villages near Hope Refugee Camp. The program has been running for six weeks without incident.\n\nStonebridge Foundation's program officer has flagged two items: first, a sector-wide report has raised concerns about ghost recipients and unverified distributions in refugee cash programs — several NGOs have faced donor clawbacks. Second, mobile network infrastructure in fragile environments has been identified as a critical vulnerability.\n\nStonebridge has not made any direct accusations. However program accountability and operational resilience are under increased scrutiny. Then an incident occurs that directly tests your chosen distribution method.",
+    threeOutcome:true,
+    getOutcomeKey(d){return d<=2?"A":d<=4?"B":"C"},
+    outcomes:{
+      "A":{label:"Outcome A — Network Outage (1-2)",cls:"out-odd",
+        text:"A severe storm has damaged the mobile network tower serving the distribution area surrounding Hope Refugee Camp. The network operator has confirmed repairs will take two weeks. Mobile money transactions and digital payments cannot be processed anywhere in the area. Thursday distributions are imminent.\n\nThe Daia Village mobile money agent and Lema Town digital merchants are all offline."},
+      "B":{label:"Outcome B — Accountability Audit (3-4)",cls:"out-even",
+        text:"Stonebridge Foundation has formally triggered a mid-program verification audit of the Malaka Refugee Cash Program following sector-wide concerns. The audit requires MGR to provide verified evidence that every distribution has reached a registered recipient. The audit team will review eight weeks of distribution records."},
+      "C":{label:"Outcome C — Both Apply (5-6)",cls:"out-b",
+        text:"Both the network outage and the accountability audit apply simultaneously. The mobile network tower has been damaged — repairs will take two weeks — and Stonebridge Foundation has formally triggered a mid-program verification audit reviewing eight weeks of records. Financial impacts are cumulative."}
+    },
+    getCons(d,ch){
+      const o=this.getOutcomeKey(d),dist=ch.distribution;
+      const map={
+        "A-vouchers":{title:"Outcome A / Paper Vouchers",
+          text:"The mobile network outage has no impact on the voucher distribution program. BAO agents proceed with Thursday distributions as planned — paper vouchers require no connectivity. All 1,000 recipients receive their vouchers on schedule.\n\nThe mobile market at Hope Camp operates normally on Tuesday and Friday — merchants travel from Lema Town via R40, which is unaffected. Stonebridge Foundation notes with approval that distributions continued unaffected.",
+          impact:0,notes:"Financial impact: $0 — distributions completely unaffected"},
+        "A-mobile":{title:"Outcome A / Basic Mobile Money",
+          text:"The mobile network outage prevents all mobile money transactions. BAO agents arrive at village distribution points but cannot process any transfers. The Daia Village mobile money agent is offline. 1,000 recipients receive nothing on Thursday.\n\nMGR must implement emergency voucher distributions for the two-week outage period — requiring urgent voucher printing, BAO agent redeployment, and shop coordination. Emergency distributions have a limited audit trail.",
+          impact:-70000,notes:"Emergency distributions and response costs: -$70,000\nAccountability: Emergency distributions partially unverified"},
+        "A-biometric":{title:"Outcome A / Digital Biometric Solution",
+          text:"BAO agents proceed to village distribution points with biometric devices and physical cash. All 1,000 recipients are verified via fingerprint and receive their distributions on schedule — fully offline. Complete biometric records are captured and will sync when connectivity is restored.\n\nStonebridge Foundation notes with approval that distributions continued perfectly despite the network outage.",
+          impact:0,notes:"Financial impact: $0 — distributions completely unaffected"},
+        "B-vouchers":{title:"Outcome B / Paper Vouchers",
+          text:"The audit reviews eight weeks of voucher distribution records. Shop redemption records confirm vouchers were redeemed — but cannot confirm that the registered recipient was the person who redeemed them. BAO agents used visual identification only — no biometric verification.\n\nThe audit identifies approximately 8% of distributions that cannot be confirmed as reaching registered recipients. Voucher transfer — recipients selling or giving vouchers to others — cannot be ruled out.\n\nStonebridge Foundation issues a formal finding requiring enhanced verification within 60 days.",
+          impact:-40900,notes:"Unverified: 8% × 8 weeks × $35,000 = $22,400 at risk\nRemediation: -$18,500\nTotal: -$40,900"},
+        "B-mobile":{title:"Outcome B / Basic Mobile Money",
+          text:"The audit reviews eight weeks of mobile money transaction records. Digital records confirm transfers were made to registered SIM accounts. However the audit identifies approximately 4% of distributions showing evidence of proxy collection — SIM accounts accessed by unregistered individuals collecting on behalf of registered recipients.\n\nStonebridge Foundation issues a formal finding noting the proxy collection concern.",
+          impact:-23700,notes:"Unverified: 4% × 8 weeks × $35,000 = $11,200 at risk\nRemediation: -$12,500\nTotal: -$23,700"},
+        "B-biometric":{title:"Outcome B / Digital Biometric Solution",
+          text:"The audit reviews eight weeks of biometric distribution records. Every distribution is verified to a registered recipient through biometric fingerprint authentication. Ghost recipients are impossible — biometric proof of life guarantees the right person received funds.\n\nThe audit confirms 100% verified distribution compliance across all 1,000 recipients for all eight weeks reviewed. Stonebridge Foundation formally commends MGR's accountability standards in the audit report.",
+          impact:0,notes:"Financial impact: $0 — full audit compliance\nClawback risk: Zero\nBonus: Stonebridge Foundation commendation"},
+        "C-vouchers":{title:"Outcome C / Paper Vouchers — Both",
+          text:"Network outage: The voucher program is completely unaffected — no connectivity required. Distributions continue on schedule.\n\nAccountability audit: 8% of distributions cannot be confirmed as reaching registered recipients. Voucher transfer cannot be ruled out. Stonebridge issues a formal finding.",
+          impact:-40900,notes:"Outage impact: $0\nAudit impact: -$40,900\nCumulative: -$40,900"},
+        "C-mobile":{title:"Outcome C / Basic Mobile Money — Both",
+          text:"Network outage: All mobile money transactions are frozen. Emergency voucher fallback required for two weeks — urgent printing, redeployment, limited audit trail.\n\nAccountability audit: 4% proxy collection found in eight weeks of records. Stonebridge issues a formal finding.",
+          impact:-93700,notes:"Outage impact: -$70,000\nAudit impact: -$23,700\nCumulative: -$93,700"},
+        "C-biometric":{title:"Outcome C / Digital Biometric Solution — Both",
+          text:"Network outage: Fully offline capability — all distributions proceed perfectly on schedule. Complete biometric records captured.\n\nAccountability audit: 100% verified compliance across all eight weeks. Stonebridge Foundation formally commends MGR in the audit report.",
+          impact:0,notes:"Both outcomes: $0 financial impact\nBonus: Stonebridge Foundation commendation"}
+      };
+      return map[`${o}-${dist}`]||map["A-vouchers"];
+    },
+    chance:{
+      neg:{title:"Chance Card — Recipient Registration Discrepancy",
+        text:"A routine cross-check of the recipient registration database has identified 47 duplicate entries requiring individual verification. A data audit and re-verification process must be completed before the next distribution cycle.",
+        impact:-8750,note:"Impact: -$8,750"},
+      pos:{title:"Chance Card — Kingsford Co-Funding",
+        text:"Kingsford University's refugee needs assessment and local market research has attracted significant attention from a global health institution. They have committed co-funding to extend the research program, contributing to the project's evidence base for future programming decisions.",
+        impact:47300,note:"Impact: +$47,300"}
+    }
+  },
+  { id:5, title:"Foreign Exchange Risk", sub:"FX Management Choice", color:"#0D6E8A",
+    card:"After lunch Fara, the project accountant, informs the team that the Malakan Shilling has strengthened significantly against the USD over the past four months. Following a major development in northern Malaka, foreign investment has flooded in, appreciating the MKS from 8.50 to 6.38 per USD — a 25% movement. The purchasing power of the USD has declined sharply and there may be insufficient budget to purchase the necessary supplies for distribution per the grant requirements.",
+    getOutcomeKey(d){return d%2===0?"2":"1"},
+    outcomes:{
+      "1":{label:"Outcome 1 — Temporary Appreciation",cls:"out-odd",
+        text:"The strengthening of the Malakan Shilling against the USD appears to be temporary. Initial foreign investment following the development in northern Malaka has been more speculative than structural and markets are beginning to stabilize. The MKS is expected to return toward its previous rate.\n\nThe impact is expected to be approximately $43,000."},
+      "2":{label:"Outcome 2 — Sustained Appreciation",cls:"out-even",
+        text:"The strengthening of the Malakan Shilling against the USD is expected to be sustained. Serious institutional investors have now entered Malaka and the currency appreciation from 8.50 to 6.38 MKS per USD is expected to persist.\n\nThe impact on supply procurement is expected to be $275,000. The FX impact is split 75% BAO (supply procurement) and 25% MGR."}
+    },
+    getCons(d,ch){
+      const o=d%2===0?"2":"1",fx=ch.fx;
+      const map={
+        "1-centralized":{title:"Outcome 1 / Centralized FX",
+          text:"MGR's centralized FX monitoring identified the exposure early. The temporary nature of the appreciation combined with proactive oversight limits the damage. The $43,000 total impact is absorbed within contingency/profit by both entities.\n\nA routine budget note is filed with Stonebridge Foundation.",
+          impact:-43000,notes:"BAO: -$32,250 (within $115,000 contingency)\nMGR: -$10,750\nTotal: -$43,000"},
+        "1-decentralized":{title:"Outcome 1 / Decentralized FX",
+          text:"The temporary nature of the appreciation saves the day. BAO did not actively manage FX exposure but markets stabilized before significant damage occurred. The $43,000 total impact is absorbed within contingency/profit.\n\nMGR had no visibility into BAO's exposure until it was over.",
+          impact:-43000,notes:"BAO: -$32,250 (within $115,000 contingency)\nMGR: -$10,750\nTotal: -$43,000"},
+        "2-centralized":{title:"Outcome 2 / Centralized FX",
+          text:"MGR's centralized FX monitoring flagged the exposure at the two-month mark. MGR was able to partially hedge, prepay selected suppliers, and restructure procurement timing — significantly reducing the total impact to $110,000.\n\nA formal budget revision is filed with Stonebridge Foundation.",
+          impact:-110000,notes:"Mitigated total impact: $110,000\nBAO: -$82,500 (within $115,000 contingency)\nMGR direct: -$27,500\nMGR total: -$27,500 (4.2% of MGR contingency/profit)"},
+        "2-decentralized":{title:"Outcome 2 / Decentralized FX",
+          text:"BAO did not actively manage FX exposure. MGR had no visibility or contractual remedy until Fara flagged the shortfall.\n\nThe full $275,000 impact is unmitigated. BAO's portion far exceeds their contingency — the excess flows directly to MGR. Stonebridge Foundation must be notified of a material budget variance. Supply deliveries to Hope Refugee Camp are at risk.",
+          impact:-160000,notes:"Full unmitigated impact: $275,000\nBAO: -$206,250 (exceeds $115,000 contingency by $91,250)\nExcess $91,250 flows to MGR\nMGR total: -$68,750 + $91,250 = -$160,000 (24.6% of MGR contingency/profit)"}
+      };
+      return map[`${o}-${fx}`]||map["1-centralized"];
+    },
+    chance:{
+      neg:{title:"Chance Card — Infrastructure Cost Surge",
+        text:"The investment boom in northern Malaka has triggered significant regional infrastructure construction. Construction activity has driven up local supply costs beyond the FX impact already recorded. An emergency procurement review is required.",
+        impact:-15000,note:"Impact: -$15,000"},
+      pos:{title:"Chance Card — BAO Supply Savings",
+        text:"BAO has successfully negotiated favorable supply contracts with a local vendor following the introduction of a competitive bidding process. Cost savings have been returned to the project budget.",
+        impact:22000,note:"Impact: +$22,000"}
+    }
+  }
+];
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+const G={
+  team:"Team 1",budget:185000,contingency:650000,
+  choices:{},choiceIdx:0,
+  scenIdx:0,dice:null,chanceDice:null,
+  results:[]
+};
+
+// Pre-fill team from URL ?team=N
+(()=>{
+  const t=new URLSearchParams(location.search).get('team');
+  if(t){const n=parseInt(t);if(n>=1&&n<=18)G.team='Team '+n;}
+})();
+
+// ═══════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════
+const $=id=>document.getElementById(id);
+const fmt=n=>{
+  const s=Math.abs(n).toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0});
+  return n<0?'-'+s:n>0?'+'+s:s;
+};
+const fmtA=n=>Math.abs(n).toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0});
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+  window.scrollTo(0,0);
+  const c=$(id).querySelector('.content');
+  if(c)c.scrollTop=0;
+}
+
+function setTeams(){
+  document.querySelectorAll('[id$="-team"]').forEach(el=>el.textContent=G.team.toUpperCase());
+}
+
+function getBalance(){
+  return G.results.reduce((a,r)=>a+r.ci+r.chi,G.contingency);
+}
+
+function updatePills(){
+  const b=getBalance(),warn=b<200000;
+  document.querySelectorAll('[id$="-bal"]').forEach(el=>el.textContent=fmt(b));
+  document.querySelectorAll('.bpill').forEach(el=>el.classList.toggle('warn',warn));
+}
+
+function totalChoicesCost(){
+  return CHOICES.reduce((t,ch)=>{
+    const s=G.choices[ch.id];if(!s)return t;
+    const o=ch.opts.find(o=>o.id===s);return t+(o?o.cost:0);
+  },0);
+}
+
+function dots(){
+  return SCENARIOS.map((_,i)=>`<div class="dot ${i<G.scenIdx?'done':i===G.scenIdx?'cur':''}"></div>`).join('');
+}
+
+// ═══════════════════════════════════════════
+// SCREEN 1 WELCOME
+// ═══════════════════════════════════════════
+function startGame(){
+  const v=$('ti').value.trim();
+  if(v)G.team=v;
+  setTeams();
+  G.choiceIdx=0;
+  renderChoice();
+  show('sc');
+}
+
+// ═══════════════════════════════════════════
+// SCREEN 2 CHOICES
+// ═══════════════════════════════════════════
+function renderChoice(){
+  const ch=CHOICES[G.choiceIdx],tot=CHOICES.length;
+  $('sc-team').textContent=G.team.toUpperCase();
+  $('sc-title').textContent=`Choice ${G.choiceIdx+1} of ${tot}: ${ch.title}`;
+  $('sc-prog').style.width=((G.choiceIdx/tot)*100)+'%';
+  $('sc-back').style.opacity=G.choiceIdx===0?'0.3':'1';
+  $('sc-next').textContent=G.choiceIdx===tot-1?'Review Budget →':'Next →';
+  const spent=totalChoicesCost(),rem=G.budget-spent;
+  $('sc-bud').textContent=fmt(rem);
+  $('sc-pill').classList.toggle('warn',rem<0);
+
+  let html='';
+  if(ch.note)html+=`<div class="info">${ch.note}</div>`;
+  ch.opts.forEach(opt=>{
+    const sel=G.choices[ch.id]===opt.id;
+    html+=`<div class="opt ${opt.color}${sel?' sel':''}" onclick="selOpt('${ch.id}','${opt.id}')">
+      <div class="opt-hdr">
+        <div style="display:flex;align-items:flex-start">
+          <div class="tick">${sel?'✓':''}</div>
+          <div class="opt-label">${opt.label}</div>
+        </div>
+        <div class="opt-cost">${opt.costLabel}</div>
+      </div>
+      <div class="opt-desc">${opt.desc}</div>
+    </div>`;
+  });
+  $('sc-content').innerHTML=html;
+}
+
+function selOpt(cid,oid){G.choices[cid]=oid;renderChoice();}
+
+function prevC(){if(G.choiceIdx>0){G.choiceIdx--;renderChoice();$('sc').querySelector('.content').scrollTop=0;}}
+
+function nextC(){
+  const ch=CHOICES[G.choiceIdx];
+  if(!G.choices[ch.id])G.choices[ch.id]=ch.opts[0].id;
+  if(G.choiceIdx<CHOICES.length-1){G.choiceIdx++;renderChoice();$('sc').querySelector('.content').scrollTop=0;}
+  else showBudget();
+}
+
+// ═══════════════════════════════════════════
+// SCREEN 3 BUDGET
+// ═══════════════════════════════════════════
+function showBudget(){
+  $('sb-team').textContent=G.team.toUpperCase();
+  const spent=totalChoicesCost(),rem=G.budget-spent,over=rem<0;
+  const lbls={property:'Property Insurance',crime:'Crime Insurance',cyber:'Cyber Insurance',fx:'FX Management',staffing:'Staffing',distribution:'Distribution'};
+  let html='<div class="card">';
+  html+=`<div class="sum-row"><div class="slbl">Annual Operating Budget</div><div class="sval">${fmt(G.budget)}</div></div>`;
+  CHOICES.forEach(ch=>{
+    const sid=G.choices[ch.id]||ch.opts[0].id;
+    const opt=ch.opts.find(o=>o.id===sid);
+    if(opt)html+=`<div class="sum-row"><div class="slbl">${lbls[ch.id]}</div><div class="sval ${opt.cost>0?'n':''}">${opt.cost>0?'-'+fmtA(opt.cost):'$0'} <span style="font-weight:400;font-size:11px;color:var(--g3)">${opt.label}</span></div></div>`;
+  });
+  html+='</div>';
+  html+=`<div class="total ${over?'red':'grn'}"><span>${over?'Over Budget':'Within Budget'}</span><span>${fmt(rem)} remaining</span></div>`;
+  if(over){
+    html+=`<div class="wbox" style="margin-top:10px">Your choices exceed the $185,000 annual budget. Please go back and revise your selections before proceeding.</div>`;
+    $('sb-foot').innerHTML=`<button class="btn btn-outline" onclick="revise()">← Revise Choices</button>`;
+  } else {
+    html+=`<div class="card" style="margin-top:10px">
+      <div class="sum-row"><div class="slbl">MGR Contingency/Profit</div><div class="sval">${fmt(G.contingency)}</div></div>
+      <div class="sum-row"><div class="slbl">Goal</div><div class="sval" style="color:var(--amber)">Protect and retain as much as possible</div></div>
+    </div>`;
+    $('sb-foot').innerHTML=`<button class="btn btn-amber" onclick="beginSc()">Begin Scenarios →</button>`;
+  }
+  $('sb-content').innerHTML=html;
+  show('sb');
+}
+
+function revise(){G.choiceIdx=0;renderChoice();show('sc');}
+function beginSc(){G.scenIdx=0;G.results=[];showScenario();}
+
+// ═══════════════════════════════════════════
+// SCREEN 4 SCENARIO
+// ═══════════════════════════════════════════
+function showScenario(){
+  const sc=SCENARIOS[G.scenIdx];
+  $('ss-team').textContent=G.team.toUpperCase();
+  $('ss-title').textContent=`Scenario ${sc.id} of 5`;
+  $('ss-dots').innerHTML=dots();
+  updatePills();
+  let html=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+    <div class="sc-num" style="background:${sc.color}">${sc.id}</div>
+    <div><div style="font-size:15px;font-weight:700;color:var(--navy)">${sc.title}</div>
+    <div style="font-size:11px;color:var(--g3)">${sc.sub}</div></div>
+  </div>
+  <div class="card"><div class="card-text">${sc.card.replace(/\n/g,'<br>')}</div></div>`;
+  $('ss-content').innerHTML=html;
+  show('ss');
+}
+
+// ═══════════════════════════════════════════
+// SCREEN 5 DICE
+// ═══════════════════════════════════════════
+function showDice(){
+  G.dice=null;
+  $('sd-team').textContent=G.team.toUpperCase();
+  $('sd-title').textContent=`Scenario ${SCENARIOS[G.scenIdx].id}: Roll the Dice`;
+  $('sd-res').textContent='';
+  $('sd-btn').disabled=true;
+  document.querySelectorAll('#sd .die').forEach(d=>d.classList.remove('sel'));
+  updatePills();
+  show('sd');
+}
+
+function selDie(n,el){
+  G.dice=n;
+  document.querySelectorAll('#sd .die').forEach(d=>d.classList.remove('sel'));
+  el.classList.add('sel');
+  $('sd-res').textContent=`You rolled ${n}`;
+  $('sd-btn').disabled=false;
+}
+
+// ═══════════════════════════════════════════
+// SCREEN 6 CONSEQUENCE
+// ═══════════════════════════════════════════
+function showCons(){
+  const sc=SCENARIOS[G.scenIdx];
+  // Show outcome first
+  const ok=sc.getOutcomeKey(G.dice);
+  const out=sc.outcomes[ok];
+  const cons=sc.getCons(G.dice,G.choices);
+  G.results.push({scenId:sc.id,scenTitle:sc.title,dice:G.dice,ci:cons.impact,chi:0,consTitle:cons.title});
+  updatePills();
+
+  const ic=cons.impact<0?'imp-n':cons.impact>0?'imp-p':'imp-z';
+  let html=`<div class="${out.cls}" style="margin-bottom:10px">
+    <div class="out-label">${out.label}</div>
+    <div class="out-text">${out.text.replace(/\n/g,'<br>')}</div>
+  </div>
+  <div class="card">
+    <div class="card-title">${cons.title}</div>
+    <div class="card-text">${cons.text.replace(/\n/g,'<br>')}</div>
+  </div>
+  <div class="impact ${ic}">${fmt(cons.impact)}</div>
+  <div class="card"><div class="card-note">${cons.notes.replace(/\n/g,'<br>')}
+    <div class="divider"></div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:8px">
+      <span style="color:var(--g3)">Contingency/Profit remaining:</span>
+      <span style="font-weight:700;color:${getBalance()<0?'var(--red)':'var(--navy)'}">${fmt(getBalance())}</span>
+    </div>
+  </div></div>`;
+
+  $('sk-team').textContent=G.team.toUpperCase();
+  $('sk-title').textContent=`Scenario ${sc.id}: Consequence`;
+  $('sk-content').innerHTML=html;
+  show('sk');
+}
+
+// ═══════════════════════════════════════════
+// SCREEN 7 CHANCE DICE
+// ═══════════════════════════════════════════
+function showChanceDice(){
+  G.chanceDice=null;
+  $('scd-team').textContent=G.team.toUpperCase();
+  $('scd-res').textContent='';
+  $('scd-btn').disabled=true;
+  document.querySelectorAll('#scd .die').forEach(d=>d.classList.remove('sel'));
+  updatePills();
+  show('scd');
+}
+
+function selChance(n,el){
+  G.chanceDice=n;
+  document.querySelectorAll('#scd .die').forEach(d=>d.classList.remove('sel'));
+  el.classList.add('sel');
+  $('scd-res').textContent=`You rolled ${n}`;
+  $('scd-btn').disabled=false;
+}
+
+// ═══════════════════════════════════════════
+// SCREEN 8 CHANCE CARD
+// ═══════════════════════════════════════════
+function showChanceCard(){
+  const sc=SCENARIOS[G.scenIdx];
+  const isEven=G.chanceDice%2===0;
+  const card=isEven?sc.chance.pos:sc.chance.neg;
+  let impact=card.impact;
+  // Scenario 1 positive card only applies on Outcome 2
+  if(sc.id===1&&isEven&&card.cond){
+    const outKey=sc.getOutcomeKey(G.dice);
+    if(outKey!==card.cond)impact=0;
+  }
+  G.results[G.results.length-1].chi=impact;
+  updatePills();
+
+  const ic=impact<0?'imp-n':impact>0?'imp-p':'imp-z';
+  let html=`<div class="chance"><div class="chance-title">${card.title}</div><div class="chance-text">${card.text.replace(/\n/g,'<br>')}</div></div>`;
+  if(impact!==0)html+=`<div class="impact ${ic}">${fmt(impact)}</div>`;
+  html+=`<div class="card"><div class="card-note">${card.note}
+    <div class="divider"></div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:8px">
+      <span style="color:var(--g3)">Contingency/Profit remaining:</span>
+      <span style="font-weight:700;color:${getBalance()<0?'var(--red)':'var(--navy)'}">${fmt(getBalance())}</span>
+    </div>
+  </div></div>`;
+
+  $('scc-team').textContent=G.team.toUpperCase();
+  $('scc-content').innerHTML=html;
+  $('scc-next').textContent=G.scenIdx>=SCENARIOS.length-1?'See Final Results →':'Next Scenario →';
+  show('scc');
+}
+
+function afterChance(){
+  if(G.scenIdx<SCENARIOS.length-1){G.scenIdx++;showScenario();}
+  else showResults();
+}
+
+// ═══════════════════════════════════════════
+// SCREEN 9 RESULTS
+// ═══════════════════════════════════════════
+function showResults(){
+  $('sr-team').textContent=G.team.toUpperCase();
+  const final=getBalance(),survived=final>0;
+  const pct=Math.round((final/G.contingency)*100);
+
+  let html='<div class="card"><div class="card-title">Game Summary — '+G.team+'</div>';
+  html+=`<div class="sum-row"><div class="slbl">Starting Contingency/Profit</div><div class="sval">${fmt(G.contingency)}</div></div>`;
+  G.results.forEach(r=>{
+    const t=r.ci+r.chi;
+    html+=`<div class="sum-row"><div class="slbl">S${r.scenId}: ${r.scenTitle.split(' ').slice(0,3).join(' ')}</div><div class="sval ${t<0?'n':t>0?'p':''}">${fmt(t)}</div></div>`;
+  });
+  html+='</div>';
+  html+=`<div class="total ${final>400000?'grn':final>100000?'':'red'}">
+    <span>${survived?`${pct}% retained`:'Contingency exhausted'}</span>
+    <span>${fmt(final)}</span>
+  </div>`;
+  html+=`<div class="card" style="margin-top:10px;text-align:center">
+    <div style="font-size:13px;color:var(--g3)">Bring your results to the debrief.<br>The goal is to recognise these decisions in your own organisations.</div>
+  </div>`;
+
+  $('sr-content').innerHTML=html;
+  show('sr');
+}
+
+// ═══════════════════════════════════════════
+// SCREEN 10 SUBMIT
+// ═══════════════════════════════════════════
+function submitResults(){
+  const final=getBalance(),survived=final>0;
+  const pct=Math.round((final/G.contingency)*100);
+
+  // Google Form submission — replace REPLACE_WITH_FORM_ID with your Form ID
+  const FA='https://docs.google.com/forms/d/e/REPLACE_WITH_FORM_ID/formResponse';
+  const fd=new FormData();
+  fd.append('entry.TEAM_FIELD',G.team);
+  fd.append('entry.BALANCE_FIELD',final.toString());
+  fd.append('entry.PCT_FIELD',pct.toString());
+  fd.append('entry.SURVIVED_FIELD',survived?'Yes':'No');
+  fd.append('entry.CHOICES_FIELD',JSON.stringify(G.choices));
+  fetch(FA,{method:'POST',body:fd,mode:'no-cors'}).catch(()=>{});
+
+  $('sdn-team').textContent=G.team.toUpperCase();
+  $('sdn-sum').innerHTML=`
+    <div class="sum-row"><div class="slbl">Team</div><div class="sval">${G.team}</div></div>
+    <div class="sum-row"><div class="slbl">Final Contingency/Profit</div><div class="sval ${survived?'p':'n'}">${fmt(final)}</div></div>
+    <div class="sum-row"><div class="slbl">Retained</div><div class="sval ${survived?'p':'n'}">${pct}%</div></div>
+    <div class="sum-row"><div class="slbl">Status</div><div class="sval ${survived?'p':'n'}">${survived?'Positive':'Exhausted'}</div></div>
+  `;
+  show('sdn');
+}
+</script>
+</body>
+</html>
